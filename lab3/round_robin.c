@@ -1,113 +1,81 @@
 #include <stdio.h>
 
-#define MAX 20
-
 int main() {
-    int n, i, time = 0, remain, quantum;
-    int at[MAX], bt[MAX], rt[MAX];
-    int ct[MAX], tat[MAX], wt[MAX], response[MAX];
-    int first_exec[MAX];
+    int n, tq;
+    int at[20], bt[20], rem_bt[20];
+    int ct[20], tat[20], wt[20], rt[20];
+    int completed = 0, time = 0;
 
-    // Gantt chart arrays
-    int gantt[MAX * 10], gtime[MAX * 10];
-    int gindex = 0;
+    float avg_wt = 0, avg_tat = 0, avg_rt = 0;
 
     printf("Enter number of processes: ");
     scanf("%d", &n);
 
-    remain = n;
+    printf("Enter Time Quantum: ");
+    scanf("%d", &tq);
 
-    // Input
-    for(i = 0; i < n; i++) {
-        printf("Enter Arrival Time and Burst Time for P%d: ", i + 1);
-        scanf("%d %d", &at[i], &bt[i]);
-        rt[i] = bt[i];        // remaining time
-        first_exec[i] = -1;   // to track first execution
+    printf("Enter Arrival Time and Burst Time:\n");
+
+    for(int i = 0; i < n; i++) {
+        printf("P%d AT: ", i + 1);
+        scanf("%d", &at[i]);
+
+        printf("P%d BT: ", i + 1);
+        scanf("%d", &bt[i]);
+
+        rem_bt[i] = bt[i];
+        rt[i] = -1;
     }
 
-    printf("Enter Time Quantum: ");
-    scanf("%d", &quantum);
+    while(completed < n) {
 
-    gtime[0] = 0;
+        int found = 0;
 
-    while(remain > 0) {
-        int executed = 0;
+        for(int i = 0; i < n; i++) {
 
-        for(i = 0; i < n; i++) {
-            if(rt[i] > 0 && at[i] <= time) {
-                executed = 1;
+            if(at[i] <= time && rem_bt[i] > 0) {
 
-                // Record first response time
-                if(first_exec[i] == -1) {
-                    first_exec[i] = time;
-                    response[i] = first_exec[i] - at[i];
+                found = 1;
+
+                if(rt[i] == -1)
+                    rt[i] = time - at[i];
+
+                if(rem_bt[i] > tq) {
+                    time += tq;
+                    rem_bt[i] -= tq;
                 }
-
-                gantt[gindex++] = i;
-
-                if(rt[i] > quantum) {
-                    time += quantum;
-                    rt[i] -= quantum;
-                } else {
-                    time += rt[i];
-                    rt[i] = 0;
+                else {
+                    time += rem_bt[i];
 
                     ct[i] = time;
                     tat[i] = ct[i] - at[i];
                     wt[i] = tat[i] - bt[i];
 
-                    remain--;
-                }
+                    avg_wt += wt[i];
+                    avg_tat += tat[i];
+                    avg_rt += rt[i];
 
-                gtime[gindex] = time;
+                    rem_bt[i] = 0;
+                    completed++;
+                }
             }
         }
 
-        // CPU idle
-        if(!executed) {
+        if(!found)
             time++;
-            gtime[gindex] = time;
-        }
     }
 
-    // Display table
-    float totalTAT = 0, totalWT = 0, totalRT = 0;
+    printf("\nProcess\tAT\tBT\tCT\tTAT\tWT\tRT\n");
 
-    printf("\nPID\tAT\tBT\tCT\tTAT\tWT\tRT\n");
-    for(i = 0; i < n; i++) {
+    for(int i = 0; i < n; i++) {
         printf("P%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-               i + 1, at[i], bt[i], ct[i], tat[i], wt[i], response[i]);
-
-        totalTAT += tat[i];
-        totalWT += wt[i];
-        totalRT += response[i];
+               i + 1, at[i], bt[i], ct[i],
+               tat[i], wt[i], rt[i]);
     }
 
-    printf("\nAverage Turnaround Time = %.2f", totalTAT / n);
-    printf("\nAverage Waiting Time = %.2f", totalWT / n);
-    printf("\nAverage Response Time = %.2f\n", totalRT / n);
-
-    // Gantt Chart
-    printf("\nGantt Chart:\n");
-
-    for(i = 0; i < gindex; i++)
-        printf("--------");
-    printf("\n|");
-
-    for(i = 0; i < gindex; i++)
-        printf(" P%d |", gantt[i] + 1);
-
-    printf("\n");
-
-    for(i = 0; i < gindex; i++)
-        printf("--------");
-
-    printf("\n");
-
-    for(i = 0; i <= gindex; i++)
-        printf("%d\t", gtime[i]);
-
-    printf("\n");
+    printf("\nAverage Waiting Time = %.2f", avg_wt / n);
+    printf("\nAverage Turnaround Time = %.2f", avg_tat / n);
+    printf("\nAverage Response Time = %.2f\n", avg_rt / n);
 
     return 0;
 }
